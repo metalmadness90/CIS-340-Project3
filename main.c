@@ -8,10 +8,27 @@
 
 #include "main.h"
 
+int external_command(char *command, char *args[]){
+	int status;
+	int temp;
+	pid_t child;
+	child = fork();
+			
+	if(child == 0){							
+		execv(command, args); 
+		return -1;							
+	}
+	else{
+		waitpid(-1,&status,NULL);	 
+	}
+	return 0;	
+}
 void path(char *arg){
 	pathDir = malloc(sizeof(CHAR_MAX));
 	strcpy(pathDir, arg);
-	//TODO: throw error for invalid path
+	
+	
+	//TODO: throw error for invalid path, also path++, --, display current path
 	
 	printf("\nCurrent path set: %s\n", arg);
 	
@@ -57,17 +74,16 @@ char *trimwhitespace(char *str){
 
 void prompt(){
 	
-	int status;
+	int status = 0;
 	char *buf = malloc(sizeof(CHAR_MAX));
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
 	char *arg = malloc(sizeof(CHAR_MAX));	
 
 	read(0,buf,CHAR_MAX);
-	printf("\nbuf: %s\n", buf);
 	char *trimmed = trimwhitespace(buf);
 	int length = strlen(trimmed);
 	int numArgs = 1;
-	//arg[0] = trimmed;
+
 	//check for arguments
 	for(int i = 0; i < length; i++){
 		trimmed[i];
@@ -77,35 +93,68 @@ void prompt(){
 							
 			}
 	}
-	printf("\ngood\n");	
-	printf("\ntrimmed: %s, arg: %s\n", trimmed, arg);
-	//Parent runs internal command, if command not found
-	//child finds external command to run
+	//Run internal command
+				
+	for(int i = 0; i < 4; i++){  									
+		strcpy(internalComp,internal[i]);						
+		if(strcmp(trimmed, internalComp) == 0){		
+			runCommand(trimmed, arg);
+			FOUND = true;				
+			break;
+		}		
+	}
+	if(!FOUND){		 
+		//Find number of path directories for later use in command search	
+		int pathNum = 1;
+		int pathLength = strlen(pathDir);		
+		for(int i = 0; i < pathLength; i++){
+			pathDir[i];
+			
+			if(pathDir[i] == ':'){
+				pathNum++;
+			}
+		}			
+		//Search each individual path for function
 		
-	if(fork() != 0){
-		wait(&status);		
-		for(int i = 0; i < 4; i++){  									
-			strcpy(internalComp,internal[i]);			
-			printf("\n%d\n",i);			
-			if(strcmp(trimmed, internalComp) == 0){		
-				runCommand(trimmed, arg);
+		char *temp = malloc(sizeof(CHAR_MAX)); 			
+		char *curPath = malloc(sizeof(CHAR_MAX));					
+		curPath = pathDir;			
+		while(pathNum != 0){				
+			for(int i = 0; i < pathLength; i++){
+				temp[i] = curPath[i];
+					
+				if(curPath[i] == ':'){
+					int count = i;						
+					for(int j = 0 ; j < length; j++){
+						temp[count] = trimmed[j];
+						count++;
+					}												
+					curPath = &curPath[i+1];						
+					break;
+				}
+										
+					//printf("\ntemp: %s\n", temp);				
+			}			
+			int tempLength = strlen(temp);								
+			char *parsedArgs[2] = {temp,NULL};				
+			int descriptor = external_command(temp, parsedArgs);			
+			if(descriptor == 0){
 				FOUND = true;
-				printf("\nrun\n");				
-				break;
+				break;			
 			}
-			//else(		
-		}
-	
-	}	
-	//TODO have child find external commands	
-	else{ 
+			
+			//Continue to next path if not found				
+			for(int i = 0; i < tempLength; i++){
+					temp[i] = ' ';
+			}
+			//parsedArgs[0] = " ";					
+			pathNum--;				
+		}	
 		if(!FOUND){
-			printf("\nchild\n");		
-			if(execv(pathDir, trimmed) < 0){
-				printf("\nCommand not found or path incorrect\n");
-			}
+			printf("\nBad command or invalid path\n");
 		}
-		exit(1);	
+			
+	
 	}	
 	FOUND = false;
 }				
