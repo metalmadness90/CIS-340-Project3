@@ -13,4 +13,5 @@ bool FOUND = false;
 char *pathDir;
 //Holds directory after cd. Would like to add a default
 char *currentDirectory;
+int descriptor;
 #endif
