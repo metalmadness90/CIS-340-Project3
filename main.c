@@ -1,3 +1,9 @@
+//Will only do external commands if path is set to "/bin/:". it does search through
+//each path but will only execute if the first one searched is correct path. Working on fix.
+
+
+
+
 #include <stdio.h>
 #include <limits.h>
 #include <unistd.h>
@@ -131,10 +137,8 @@ void prompt(){
 					}												
 					curPath = &curPath[i+1];						
 					break;
-				}
-										
-					//printf("\ntemp: %s\n", temp);				
-			}			
+				}										
+			}				
 			int tempLength = strlen(temp);								
 			char *parsedArgs[2] = {temp,NULL};				
 			int descriptor = external_command(temp, parsedArgs);			
@@ -146,8 +150,7 @@ void prompt(){
 			//Continue to next path if not found				
 			for(int i = 0; i < tempLength; i++){
 					temp[i] = ' ';
-			}
-			//parsedArgs[0] = " ";					
+			}				
 			pathNum--;				
 		}	
 		if(!FOUND){
