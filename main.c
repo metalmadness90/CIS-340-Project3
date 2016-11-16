@@ -1,5 +1,4 @@
-//Will only do external commands if path is set to "/bin/:". it does search through
-//each path but will only execute if the first one searched is correct path. Working on fix.
+//external commands now work 100% of the time. no seg faults either.
 
 
 
@@ -29,15 +28,28 @@ void external_command(char *command, char *args[]){
 		waitpid(-1,&status,NULL);	 
 	}	
 }
-void path(char *arg){
-	pathDir = malloc(sizeof(CHAR_MAX));
-	strcpy(pathDir, arg);
+void path(){
 	
+	if(numPathArgs == 0){
+		printf("\nNo path set\n");
+		return;	
+	}	
 	
-	//TODO: throw error for invalid path, also path++, --, display current path
+	printf("\n");
+	for(int i = 0; i < numPathArgs; i++){
+		if(numPathArgs == 1 || i == (numPathArgs - 1)){
+			printf("%s", pathDir[i]);
+		}			
+		else{		
+		printf("%s:", pathDir[i]);
+		}	
+	}
+	printf("\n");
 	
-	printf("\nCurrent path set: %s\n", arg);
-	
+}
+void path_inc(char *arg){	
+	pathDir[numPathArgs] = arg;	
+	numPathArgs++;
 }
 void quit(){
 	QUIT = true;
@@ -50,8 +62,11 @@ void runCommand(char *command, char *arg){
 		quit();
 	}
 	if(strcmp(command, internal[2]) == 0){
-		path(arg);
+		path();
 	}
+	if(strcmp(command, internal[3]) == 0){
+		path_inc(arg);
+	}	
 	//add if statement corresponding to command here.
 	//numbers will correspond to command order
 	// in 'internal' array.
@@ -117,78 +132,47 @@ void prompt(){
 			break;
 		}		
 	}
+	
 	if(!FOUND){		 
-		//Find number of path directories for later use in command search	
+		if(pathDir[0] == NULL){
+			printf("\nNo path specified, cannot run command\n");
+		}		
+		int tempLength = 0;								
+		char *temp = malloc(sizeof(CHAR_MAX));				
 				
-		int pathNum = 1;
-		int pathLength = strlen(pathDir);		
-		for(int i = 0; i < pathLength; i++){
-			pathDir[i];
-			
-			if(pathDir[i] == ':'){
-				pathNum++;
-			}
-		}			
-		//Search each individual path for function
-		
-		char *temp = malloc(sizeof(CHAR_MAX)); 			
-		char *curPath = malloc(sizeof(CHAR_MAX));					
-		curPath = pathDir;			
-		while(pathNum != 0){				
-			for(int i = 0; i < pathLength; i++){
-				temp[i] = curPath[i];
-					
-				if(curPath[i] == ':'){
-					int count = i;						
-					temp[count] = '/';					
-					count++;
-					for(int j = 0 ; j < length; j++){
-						temp[count] = trimmed[j];
-						count++;
-					}												
-					curPath = &curPath[i+1];						
-					break;
-				}										
-			}						
-			
-			//For final path string			
-			if(strcmp(temp, curPath) == 0){
-				int tempLength = strlen(temp);
-				temp[tempLength] = '/';
-				int count = tempLength;
-				count++;				
-				for(int j = 0 ; j < length; j++){
-						temp[count] = trimmed[j];
-						count++;			
-						printf("\ntemp loop: %s\n", temp);				
-				}
-			}
-			int tempLength = strlen(temp);								
-			char *parsedArgs[2] = {temp,NULL};				
-			printf("\ntemp: %s\n", temp);
-			//Run command		
-			
-			external_command(temp, parsedArgs);			
-			printf("\ndexcript: %d\n", descriptor);			
-			
-			
-			//Continue to next path if not found				
+		//Parse and run command		
+		for(int i = 0; i < numPathArgs; i++){
 			for(int i = 0; i < tempLength; i++){
-					temp[i] = ' ';
+				temp[i] = ' ';
+			}					
+			strcpy(temp,pathDir[i]);
+			tempLength = strlen(temp);					
+			temp[tempLength] = '/';
+			tempLength++;
+							
+			for(int i = 0; i < length; i++){	
+				temp[tempLength] = trimmed[i];					
+				tempLength++;						
 			}				
-			pathNum--;				
-		}	
+			temp = trimwhitespace(temp);			
+			printf("\ntemp: %s\n", temp);			
+						
+			parsedArgs[0] = temp;
+			parsedArgs[1] = NULL;
+			printf("\nparsed: %s\n", parsedArgs[0]);			
+			external_command(temp, parsedArgs);			
+		}				
 		//would like to throw error but am at a loss for 
 		//how to throw a flag if execute is successful		
 		/*if(!FOUND){
-			printf("\nBad command or invalid path\n");
+		printf("\nBad command or invalid path\n");
 		}
 		*/	
-	
 	}	
+		
 	FOUND = false;
 }				
-	
+		
 int main(){
 
 	do{
