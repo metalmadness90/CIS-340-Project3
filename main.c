@@ -15,7 +15,7 @@
 void external_command(char *command, char *args[]){
 	
 	int status;
-	int temp;
+	//int temp; Never used
 	pid_t child;
 	child = fork();
 			
@@ -25,7 +25,7 @@ void external_command(char *command, char *args[]){
 									
 	}
 	else{
-		waitpid(-1,&status,NULL);	 
+		waitpid(-1,&status,0);	 
 	}	
 }
 void path(){
@@ -108,10 +108,12 @@ void prompt(){
 		buf[i] = ' ';
 	}	
 	
-	read(0,buf,CHAR_MAX);
+	//clean up command line
+	printf("Fido>");
+	scanf("%s",buf);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
-	int numArgs = 1;
+	//int numArgs = 1; Never used
 
 	//check for arguments
 	for(int i = 0; i < length; i++){
