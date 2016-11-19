@@ -1,6 +1,8 @@
-//external commands now work 100% of the time. no seg faults either. Added path++ and fixed
-//path(). all we need now is cd and path--. Also formating so it looks nicer. let me know if
-// you find any bugs.
+//added path - and restructured path function so it now contains path, path - and path +,
+//implementing the right one accordingly. Also many error throws for incorrect input.
+//To use: type"path + (path directory)" to add path, and "path - (path directory)" to 
+//remove a path already on the list. As said before, /bin is the only one that should
+//successfully run external commands. Still need cd.
 
 
 
@@ -21,7 +23,8 @@ void external_command(char *command, char *args[]){
 	child = fork();
 			
 	if(child == 0){							
-		descriptor = execv(command, args); 
+		execv(command, args); 
+		//externalCheck++;		
 		exit(1);
 									
 	}
@@ -29,44 +32,69 @@ void external_command(char *command, char *args[]){
 		waitpid(-1,&status,NULL);	 
 	}	
 }
-void path(){
+void path(char *arg[]){
 	
-	if(numPathArgs == 0){
+	//If command includes + or -, do appropriate actions, else display current path
+	
+	if(strcmp(arg[0], internal[3]) == 0 && arg[0] != NULL){					
+		pathDir[numPathArgs] = arg[1];	
+		numPathArgs++;
+		return;		
+	}	
+	//Find specified path and replace with path in front of it (if any, 
+	//otherwise replace with NULL is fine.)		
+	if(strcmp(arg[0], internal[4]) == 0 && arg[0] != NULL){
+		for(int i = 0; i < numPathArgs; i++){
+			if(arg[1] == NULL){
+				return;
+			}
+			
+			if(strcmp(arg[1], pathDir[i]) == 0){
+				FOUND = true;				
+				pathDir[i] = pathDir[i+1];
+					
+				while(pathDir[i] != NULL){
+					i++;
+					pathDir[i] = pathDir[i+1];
+				}					
+				numPathArgs--;					
+				return;
+			}
+		}	
+		if(!FOUND){
+			printf("\nCould not find specified path to remove\n");
+		}	
+	}	
+	if(numPathArgs == 0 && strcmp(arg[0], internal[4]) != 0){
 		printf("\nNo path set\n");
 		return;	
 	}	
 	
 	
-	for(int i = 0; i < numPathArgs; i++){
+	for(int i = 0; i < numPathArgs; i++){		
 		if(numPathArgs == 1 || i == (numPathArgs - 1)){
 			printf("%s", pathDir[i]);
 		}			
 		else{		
-		printf("%s:", pathDir[i]);
+			printf("%s:", pathDir[i]);
 		}	
 	}
 	printf("\n");
 	
 }
-void path_inc(char *arg){	
-	pathDir[numPathArgs] = arg;	
-	numPathArgs++;
-}
+
 void quit(){
 	QUIT = true;
 }
 
 //Run command matching number
 
-void runCommand(char *command, char *arg){
+void runCommand(char *command, char *arg[]){
 	if(strcmp(command, internal[0]) == 0){
 		quit();
 	}
 	if(strcmp(command, internal[2]) == 0){
-		path();
-	}
-	if(strcmp(command, internal[3]) == 0){
-		path_inc(arg);
+		path(arg);
 	}	
 	//add if statement corresponding to command here.
 	//numbers will correspond to command order
@@ -101,7 +129,7 @@ void prompt(){
 	
 	char *buf = malloc(sizeof(CHAR_MAX));
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
-	char *arg = malloc(sizeof(CHAR_MAX));	
+	char *arg[50]; 	
 	
 	write(1, PROMPT, strlen(PROMPT));
 	//clear buffer
@@ -114,13 +142,13 @@ void prompt(){
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
 	
-
-	//check for arguments
+	//parse arguments
+	int numArgs = 0;	
 	for(int i = 0; i < length; i++){
 			if(trimmed[i] == ' '){
 				trimmed[i] = 0;				
-				arg = &trimmed[i+1];
-							
+				arg[numArgs] = &trimmed[i+1];
+				numArgs++;			
 			}
 	}
 	//Run internal command
@@ -130,6 +158,9 @@ void prompt(){
 		if(strcmp(trimmed, internalComp) == 0){		
 			runCommand(trimmed, arg);
 			FOUND = true;				
+			for(int i = 0; i < numArgs; i++){
+				arg[i] = " ";
+			}	
 			break;
 		}		
 	}
@@ -140,7 +171,7 @@ void prompt(){
 		}		
 		int tempLength = 0;								
 		char *temp = malloc(sizeof(CHAR_MAX));				
-				
+		externalCheck = 0;		
 		//Parse and run command		
 		for(int i = 0; i < numPathArgs; i++){
 			for(int i = 0; i < tempLength; i++){
@@ -156,16 +187,17 @@ void prompt(){
 				tempLength++;						
 			}				
 			temp = trimwhitespace(temp);			
-			parsedArgs[0] = temp;
-			parsedArgs[1] = NULL;			
+			parsedArgs[0] = temp;	
+			parsedArgs[1] = NULL;						
 			external_command(temp, parsedArgs);			
 		}				
-		//would like to throw error but am at a loss for 
-		//how to throw a flag if execute is successful		
-		/*if(!FOUND){
-		printf("\nBad command or invalid path\n");
-		}
-		*/	
+		//Still want to throw error, but not sure how unless
+		//I use a pipe?
+		
+		/*if(externalCheck == numPathArgs && numPathArgs != 0){
+			printf("\nBad command or invalid path\n");
+		}*/
+			
 	}	
 		
 	FOUND = false;
