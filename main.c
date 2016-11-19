@@ -1,4 +1,6 @@
-//external commands now work 100% of the time. no seg faults either.
+//external commands now work 100% of the time. no seg faults either. Added path++ and fixed
+//path(). all we need now is cd and path--. Also formating so it looks nicer. let me know if
+// you find any bugs.
 
 
 
@@ -14,8 +16,7 @@
 
 void external_command(char *command, char *args[]){
 	
-	int status;
-	//int temp; Never used
+	int status = 0;
 	pid_t child;
 	child = fork();
 			
@@ -25,7 +26,7 @@ void external_command(char *command, char *args[]){
 									
 	}
 	else{
-		waitpid(-1,&status,0);	 
+		waitpid(-1,&status,NULL);	 
 	}	
 }
 void path(){
@@ -35,7 +36,7 @@ void path(){
 		return;	
 	}	
 	
-	printf("\n");
+	
 	for(int i = 0; i < numPathArgs; i++){
 		if(numPathArgs == 1 || i == (numPathArgs - 1)){
 			printf("%s", pathDir[i]);
@@ -97,27 +98,25 @@ void prompt(){
 	
 					
 	
-	int status = 0;
+	
 	char *buf = malloc(sizeof(CHAR_MAX));
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
 	char *arg = malloc(sizeof(CHAR_MAX));	
 	
+	write(1, PROMPT, strlen(PROMPT));
 	//clear buffer
 	int length = strlen(buf);
 	for(int i = 0; i < length; i++){
 		buf[i] = ' ';
 	}	
 	
-	//clean up command line
-	printf("Fido>");
-	scanf("%s",buf);
+	read(0,buf,CHAR_MAX);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
-	//int numArgs = 1; Never used
+	
 
 	//check for arguments
 	for(int i = 0; i < length; i++){
-		trimmed[i];
 			if(trimmed[i] == ' '){
 				trimmed[i] = 0;				
 				arg = &trimmed[i+1];
@@ -157,11 +156,8 @@ void prompt(){
 				tempLength++;						
 			}				
 			temp = trimwhitespace(temp);			
-			printf("\ntemp: %s\n", temp);			
-						
 			parsedArgs[0] = temp;
-			parsedArgs[1] = NULL;
-			printf("\nparsed: %s\n", parsedArgs[0]);			
+			parsedArgs[1] = NULL;			
 			external_command(temp, parsedArgs);			
 		}				
 		//would like to throw error but am at a loss for 

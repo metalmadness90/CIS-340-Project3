@@ -4,10 +4,11 @@
 #define bool char
 #define false 0
 #define true 1
-#include <malloc.h>
+#define PROMPT "\nshell$: "
+
 
 //All internal commands
-char *internal[5] = {"quit","cs","path","path++","path--"};
+char *internal[5] = {"quit","cd","path","path++","path--"};
 bool QUIT;
 bool FOUND = false;
 char *pathDir[50];
