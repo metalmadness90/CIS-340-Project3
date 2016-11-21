@@ -32,6 +32,17 @@ void external_command(char *command, char *args[]){
 		waitpid(-1,&status,NULL);	 
 	}	
 }
+void cd(char *arg[]){
+	
+	int descriptor = chdir(arg[0]);
+	
+	if(descriptor != 0){
+		printf("\nDirectory not found\n");
+	}
+	else{
+		currentDirectory = arg[0];
+	}
+}
 void path(char *arg[]){
 	
 	//If command includes + or -, do appropriate actions, else display current path
@@ -96,6 +107,9 @@ void runCommand(char *command, char *arg[]){
 	if(strcmp(command, internal[2]) == 0){
 		path(arg);
 	}	
+	if(strcmp(command, internal[1]) == 0){
+		cd(arg);
+	}	
 	//add if statement corresponding to command here.
 	//numbers will correspond to command order
 	// in 'internal' array.
@@ -132,6 +146,11 @@ void prompt(){
 	char *arg[50]; 	
 	
 	write(1, PROMPT, strlen(PROMPT));
+	
+	//if(currentDirectory != NULL){
+		write(1, currentDirectory, strlen(currentDirectory));
+		write(1, "$ ", 2);
+	//}	
 	//clear buffer
 	int length = strlen(buf);
 	for(int i = 0; i < length; i++){

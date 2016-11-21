@@ -4,7 +4,7 @@
 #define bool char
 #define false 0
 #define true 1
-#define PROMPT "\nshell$: "
+#define PROMPT "\nshell$:"
 
 
 //All internal commands
@@ -16,6 +16,6 @@ char *parsedArgs[50];
 int numPathArgs = 0;
 int externalCheck;
 //Holds directory after cd. Would like to add a default
-char *currentDirectory;
+char *currentDirectory = "/home";
 int descriptor;
 #endif
