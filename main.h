@@ -15,7 +15,7 @@ char *pathDir[50];
 char *parsedArgs[50];
 int numPathArgs = 0;
 int externalCheck;
-//Holds directory after cd. Would like to add a default
-char *currentDirectory = "/home";
+//Holds directory after cd. 
+char *currentDirectory;
 int descriptor;
 #endif

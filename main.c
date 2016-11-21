@@ -1,18 +1,10 @@
-//added path - and restructured path function so it now contains path, path - and path +,
-//implementing the right one accordingly. Also many error throws for incorrect input.
-//To use: type"path + (path directory)" to add path, and "path - (path directory)" to 
-//remove a path already on the list. As said before, /bin is the only one that should
-//successfully run external commands. Still need cd.
-
-
-
-
 #include <stdio.h>
 #include <limits.h>
 #include <unistd.h>
 #include <string.h>
 #include <ctype.h>
 #include <stdlib.h>
+#include <wait.h>
 
 #include "main.h"
 
@@ -29,9 +21,10 @@ void external_command(char *command, char *args[]){
 									
 	}
 	else{
-		waitpid(-1,&status,NULL);	 
+		wait(&status);	 
 	}	
 }
+//Change directory
 void cd(char *arg[]){
 	
 	int descriptor = chdir(arg[0]);
@@ -98,7 +91,7 @@ void quit(){
 	QUIT = true;
 }
 
-//Run command matching number
+//Run command matching string in 'internal' array
 
 void runCommand(char *command, char *arg[]){
 	if(strcmp(command, internal[0]) == 0){
@@ -110,9 +103,6 @@ void runCommand(char *command, char *arg[]){
 	if(strcmp(command, internal[1]) == 0){
 		cd(arg);
 	}	
-	//add if statement corresponding to command here.
-	//numbers will correspond to command order
-	// in 'internal' array.
 }
 //Standard trim function: http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
 
@@ -147,10 +137,11 @@ void prompt(){
 	
 	write(1, PROMPT, strlen(PROMPT));
 	
-	//if(currentDirectory != NULL){
+	//Display current directory if different than starting directory
+	if(currentDirectory != NULL){
 		write(1, currentDirectory, strlen(currentDirectory));
 		write(1, "$ ", 2);
-	//}	
+	}	
 	//clear buffer
 	int length = strlen(buf);
 	for(int i = 0; i < length; i++){
@@ -191,7 +182,7 @@ void prompt(){
 		int tempLength = 0;								
 		char *temp = malloc(sizeof(CHAR_MAX));				
 		externalCheck = 0;		
-		//Parse and run command		
+		//Parse and run command	through each path variable	
 		for(int i = 0; i < numPathArgs; i++){
 			for(int i = 0; i < tempLength; i++){
 				temp[i] = ' ';
@@ -209,14 +200,7 @@ void prompt(){
 			parsedArgs[0] = temp;	
 			parsedArgs[1] = NULL;						
 			external_command(temp, parsedArgs);			
-		}				
-		//Still want to throw error, but not sure how unless
-		//I use a pipe?
-		
-		/*if(externalCheck == numPathArgs && numPathArgs != 0){
-			printf("\nBad command or invalid path\n");
-		}*/
-			
+		}							
 	}	
 		
 	FOUND = false;
