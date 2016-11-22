@@ -5,6 +5,7 @@
 #include <ctype.h>
 #include <stdlib.h>
 #include <wait.h>
+#include <fcntl.h>
 
 #include "main.h"
 
@@ -15,8 +16,7 @@ void external_command(char *command, char *args[]){
 	child = fork();
 			
 	if(child == 0){							
-		execv(command, args); 
-		//externalCheck++;		
+		execv(command, args); 		
 		exit(1);
 									
 	}
@@ -40,7 +40,16 @@ void path(char *arg[]){
 	
 	//If command includes + or -, do appropriate actions, else display current path
 	
+	temp = getcwd(temp, PATH_MAX +1);
+
 	if(strcmp(arg[0], internal[3]) == 0 && arg[0] != NULL){					
+		int check = chdir(arg[1]);	
+		chdir(temp);
+		//Make sure directory exists		
+		if(check != 0){
+			printf("\nInvalid path: Not a directory\n");
+			return;
+		}		
 		pathDir[numPathArgs] = arg[1];	
 		numPathArgs++;
 		return;		
@@ -128,9 +137,6 @@ char *trimwhitespace(char *str){
 
 void prompt(){
 	
-					
-	
-	
 	char *buf = malloc(sizeof(CHAR_MAX));
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
 	char *arg[50]; 	
@@ -182,7 +188,7 @@ void prompt(){
 		int tempLength = 0;								
 		char *temp = malloc(sizeof(CHAR_MAX));				
 		externalCheck = 0;		
-		//Parse and run command	through each path variable	
+		//Parse each path directory in path variable and check for command	
 		for(int i = 0; i < numPathArgs; i++){
 			for(int i = 0; i < tempLength; i++){
 				temp[i] = ' ';
@@ -199,10 +205,19 @@ void prompt(){
 			temp = trimwhitespace(temp);			
 			parsedArgs[0] = temp;	
 			parsedArgs[1] = NULL;						
-			external_command(temp, parsedArgs);			
+			
+			//make sure command exists in current path
+			int check = open(parsedArgs[0], O_RDONLY);
+			if(check >= 0){
+				FOUND = true;				
+				external_command(temp, parsedArgs);			
+			}
+			close(check);		
 		}							
+		if(!FOUND && pathDir[0] != NULL){
+			printf("\nInvalid command or wrong path directory\n");
+		}
 	}	
-		
 	FOUND = false;
 }				
 		

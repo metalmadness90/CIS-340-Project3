@@ -14,8 +14,8 @@ bool FOUND = false;
 char *pathDir[50];
 char *parsedArgs[50];
 int numPathArgs = 0;
-int externalCheck;
 //Holds directory after cd. 
 char *currentDirectory;
-int descriptor;
+char *temp; 
+int externalCheck;
 #endif
