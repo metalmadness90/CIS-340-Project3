@@ -27,34 +27,66 @@ void printCmd(char *words[], int numWords)
     pipe(p);
     if (fork() ==0)
     {
-	printf("\nchild\n");        
-	close (p[0]);
+	printf("\nchild\n");      
+        close (p[0]);
         dup2 (p[1], 1);
         execv(args[0],args);
         exit(1);
     }
     else 
     {
-        close (p[1]);
-        dup2 (p[0], 0);
+       close (p[1]);
+       dup2 (p[0], 0);
     }
 }
 
 void parseCommands(char *words[], int numWords)
 {
+     int status;
      int cmdStart = 0;
      int word = 0;
+     int p[2];
+     pipe(p);
      for (; word < numWords; word++)
      {
          // if word is "|"
          if (words[word][0] == '|' || words[word][0] == 0)
          {
-             printCmd(&words[cmdStart], word - cmdStart);
-             cmdStart = word + 1;
+              int commandWords = word - cmdStart;
+              char *command[commandWords+1];
+              //command[0] = &words[cmdStart];
+              //printf("\nprint command\n");
+    	      //char *args[commandWords+1];
+              for (int i = 0; i < commandWords; i++)
+              {
+              	//printf("%s ", words[i]);
+              	command[i] = words[i];
+    	      }
+    	      command[commandWords] = 0;
+              //printf("\n");
+    
+              
+              if (fork() ==0)
+              {
+	      	//printf("\nchild\n");      
+              	close (p[0]);
+              	dup2 (p[1], 1);
+              	execv(command[0],command);
+                exit(1);
+    	      }
+    	      else 
+              {
+              //close (p[1]);
+              //dup2 (p[0], 0);
+              	wait(&status);
+                //close(p[0]);
+                //close(p[1]);
+              }
+              cmdStart = word + 1;
          }
      }
      //printCmd(&words[cmdStart], word - cmdStart);
-     printf("\ncheck\n");
+     //printf("\ncheck\n");
      
      char *args[word - cmdStart + 1];
      int i = 0;
@@ -62,9 +94,20 @@ void parseCommands(char *words[], int numWords)
      {
          args[i] = words[cmdStart + i];
      }
-     printf("\nargs: %s\n", args[0]);
+     //printf("\nargs: %s\n", args[1]);
+     //printf("\n");
      args[2] = 0;
-     execv(args[0], args);
+     if(fork() == 0){
+        close(p[1]);
+        dup2 (p[0], 0);
+        //printf("\n");
+        execv(args[0], args);
+        exit(1);
+     }
+     else{
+       printf("\n\n");
+       //wait(&status);
+     }
 }
 
 
@@ -89,7 +132,7 @@ char *trimwhitespace(char *str){
 }
 
 char *pathCheck(char *string, int length){
-	char *temp = malloc(sizeof(CHAR_MAX));	
+	char *temp = malloc(sizeof(char));	
 	int tempLength = 0;		
 	for(int i = 0; i < numPathArgs; i++){					
 		strcpy(temp,pathDir[i]);
@@ -108,7 +151,7 @@ char *pathCheck(char *string, int length){
 			return temp;						
 		}
 		close(check);	
-	}        
+	}        	
 	return string;
 }
 
@@ -144,7 +187,7 @@ void path(char *arg[]){
 	//If command includes + or -, do appropriate actions, else display current path
 	
 	temp = getcwd(temp, PATH_MAX +1);
-
+        
 	if(strcmp(arg[1], internal[3]) == 0 && arg[1] != NULL){					
 		int check = chdir(arg[2]);	
 		chdir(temp);
@@ -222,7 +265,7 @@ void prompt(){
 	char *buf = malloc(sizeof(CHAR_MAX));
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
 	char *arg[50]; 	
-	
+	arg[1] = NULL;
 	write(1, PROMPT, strlen(PROMPT));
 	
 	//Display current directory if different than starting directory
@@ -239,7 +282,7 @@ void prompt(){
 	read(0,buf,CHAR_MAX);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
-	
+	//printf("\nbuf: %s\n", buf);
 	//parse arguments
 	int numArgs = 1;	
 		
@@ -300,11 +343,12 @@ void prompt(){
 		else{
 			external_command(parsedArgs[0], parsedArgs);
 		}	
-	}	
+	         
+        }	
 	for(int i = 0; i < numArgs; i++){
-		arg[i] = " ";
+		arg[i] = NULL;
 	}		
-	FOUND = false;
+        FOUND = false;
 }				
 		
 int main(){

@@ -1,6 +1,7 @@
 #include <unistd.h>
 #include <stdio.h>
-
+#include <wait.h>
+#include <stdlib.h>
 void printCmd(char *words[], int numWords)
 {
     char *args[numWords+1];
@@ -19,6 +20,7 @@ void printCmd(char *words[], int numWords)
         close (p[0]);
         dup2 (p[1], 1);
         execv(args[0],args);
+        exit(1);
     }
     else 
     {
@@ -31,6 +33,7 @@ void parseCommands(char *words[], int numWords)
 {
      int cmdStart = 0;
      int word = 0;
+     int status;
      for (; word < numWords; word++)
      {
          // if word is "|"
@@ -40,15 +43,16 @@ void parseCommands(char *words[], int numWords)
              cmdStart = word + 1;
          }
      }
-     //printCmd(&words[cmdStart], word - cmdStart);
-     char *args[word - cmdStart + 1];
+    printCmd(&words[cmdStart], word - cmdStart);
+    wait(&status);	    
+	/*  char *args[word - cmdStart + 1];
      int i = 0;
      for (; i <= word - cmdStart; i++)
      {
          args[i] = words[cmdStart + i];
      }
      args[2] = 0;
-     execv(args[0], args);
+     external_command(args[0], args);*/
 }
 
 int main()
@@ -56,8 +60,8 @@ int main()
      // char *rawCommand = "/bin/ls -l | grep \"t\"";
      int CMD_LEN = 8;
      char *words[CMD_LEN];
-     words[0] = "/bin/cat";
-     words[1] = "main.c";
+     words[0] = "/bin/ls";
+     words[1] = "-l";
      words[2] = "|";
      words[3] = "/bin/grep";
      words[4] = "t";
