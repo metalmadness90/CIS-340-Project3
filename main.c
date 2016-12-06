@@ -9,17 +9,17 @@
 
 #include "main.h"
 
-//external commands if command is a pipeline. Does not seem to work well
-// if directory is changed from default. Also sometimes enter needs to 
-// be pressed for prompt symbol to reappear after exectution. working
-// on fix.
+//external commands if command is a pipeline. Sometimes enter 
+//needs to be pressed after execution for prompt symbol
+//to reapear. Not sure why but probably something stupid.
 void external_pipeline(char *words[], int numWords)
 {
-     int status;
+     int status = 0;
      int cmdStart = 0;
      int word = 0;
      int p[2];
      pipe(p);
+     //printf("\n");
      for (; word < numWords; word++)
      {
          // if word is "|"
@@ -42,7 +42,8 @@ void external_pipeline(char *words[], int numWords)
               	execv(command[0],command);
                 exit(1);
     	      }
-              cmdStart = word + 1;
+              
+	      cmdStart = word + 1;
          }
      }
      // parse and run final command in pipe
@@ -56,12 +57,14 @@ void external_pipeline(char *words[], int numWords)
      if(fork() == 0){
         close(p[1]);
         dup2 (p[0], 0);
-        execv(args[0], args);
+	printf("\n");        
+	execv(args[0], args);
         exit(1);
      }
      else{
        wait(&status);
      }
+     //printf("\n\n");
 }
 
 //Standard trim function: http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -114,12 +117,12 @@ char *pathCheck(char *string, int length){
 }
 
 void external_command(char *command, char *args[]){
-	
 	int status = 0;
 	pid_t child;
 	child = fork();
 			
 	if(child == 0){							
+		printf("\n");	
 		execv(command, args); 		
 		exit(1);
 									
@@ -141,56 +144,59 @@ void cd(char *arg[]){
 	}
 }
 
-// overhaul broke this function and causes segfaults if 'path' is invoked with no
-// arguments. working on fix.
 void path(char *arg[]){
 	
 	//If command includes + or -, do appropriate actions, else display current path
 	
 	temp = getcwd(temp, PATH_MAX +1);
-        
-	if(strcmp(arg[1], internal[3]) == 0 && arg[1] != NULL){					
-		int check = chdir(arg[2]);	
-		chdir(temp);
-		//Make sure directory exists		
-		if(check != 0){
-			printf("\nInvalid path: Not a directory\n");
-			return;
-		}		
-		pathDir[numPathArgs] = arg[2];	
-		numPathArgs++;
-		return;		
-	}	
+        if(arg[1] != NULL){
+		if(strcmp(arg[1], internal[3]) == 0){					
+			int check = chdir(arg[2]);	
+			chdir(temp);
+			//Make sure directory exists		
+			if(check != 0){
+				printf("\nInvalid path: Not a directory\n");
+				return;
+			}		
+			pathDir[numPathArgs] = arg[2];	
+			numPathArgs++;
+			return;		
+		}	
+		
 	//Find specified path and replace with path in front of it (if any, 
 	//otherwise replace with NULL is fine.)		
-	if(strcmp(arg[1], internal[4]) == 0 && arg[1] != NULL){
-		for(int i = 0; i < numPathArgs; i++){
-			if(arg[2] == NULL){
-				return;
-			}
+		if(strcmp(arg[1], internal[4]) == 0){
 			
-			if(strcmp(arg[2], pathDir[i]) == 0){
-				FOUND = true;				
-				pathDir[i] = pathDir[i+1];
-					
-				while(pathDir[i] != NULL){
-					i++;
+                	for(int i = 0; i < numPathArgs; i++){
+				printf("\nyes!\n");				
+				if(arg[2] == NULL){
+					printf("\nNo path entered for removal\n");
+					return;
+				}
+			
+				if(strcmp(arg[2], pathDir[i]) == 0){
+					FOUND = true;				
 					pathDir[i] = pathDir[i+1];
-				}					
-				numPathArgs--;					
-				return;
-			}
+						
+					while(pathDir[i] != NULL){
+						i++;
+						pathDir[i] = pathDir[i+1];
+					}					
+					numPathArgs--;					
+					return;
+				}
+			}	
+			if(!FOUND){
+				printf("\nCould not find specified path to remove\n");
+			}	
 		}	
-		if(!FOUND){
-			printf("\nCould not find specified path to remove\n");
-		}	
-	}	
-	if(numPathArgs == 0 && strcmp(arg[1], internal[4]) != 0){
-		printf("\nNo path set\n");
-		return;	
-	}	
-	
-	
+		
+			
+	}
+	if(numPathArgs == 0){
+			printf("\nNo path set\n");
+			return;	
+	}
 	for(int i = 0; i < numPathArgs; i++){		
 		if(numPathArgs == 1 || i == (numPathArgs - 1)){
 			printf("%s", pathDir[i]);
@@ -306,8 +312,10 @@ void prompt(){
         		arg[i] = NULL;
 		}		         
         }	
-	
-        FOUND = false;
+	for(int i = 0; i < numArgs; i++){	
+        		arg[i] = NULL;
+	}        
+	FOUND = false;
 }				
 		
 int main(){
