@@ -11,6 +11,7 @@
 char *internal[5] = {"quit","cd","path","+","-"};
 bool QUIT;
 bool FOUND = false;
+bool CHECK;
 char *pathDir[50];
 char *parsedArgs[50];
 int numPathArgs = 0;
@@ -18,4 +19,5 @@ int numPathArgs = 0;
 char *currentDirectory;
 char *temp; 
 int externalCheck;
+int pipeArgs;
 #endif
