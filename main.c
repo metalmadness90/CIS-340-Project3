@@ -9,38 +9,11 @@
 
 #include "main.h"
 
-//Standard trim function: http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
-
-void printCmd(char *words[], int numWords)
-{
-    printf("\nprint command\n");
-    char *args[numWords+1];
-    for (int i = 0; i < numWords; i++)
-    {
-        //printf("%s ", words[i]);
-        args[i] = words[i];
-    }
-    args[numWords] = 0;
-    printf("\n");
-    
-    int p[2];
-    pipe(p);
-    if (fork() ==0)
-    {
-	printf("\nchild\n");      
-        close (p[0]);
-        dup2 (p[1], 1);
-        execv(args[0],args);
-        exit(1);
-    }
-    else 
-    {
-       close (p[1]);
-       dup2 (p[0], 0);
-    }
-}
-
-void parseCommands(char *words[], int numWords)
+//external commands if command is a pipeline. Does not seem to work well
+// if directory is changed from default. Also sometimes enter needs to 
+// be pressed for prompt symbol to reappear after exectution. working
+// on fix.
+void external_pipeline(char *words[], int numWords)
 {
      int status;
      int cmdStart = 0;
@@ -54,62 +27,44 @@ void parseCommands(char *words[], int numWords)
          {
               int commandWords = word - cmdStart;
               char *command[commandWords+1];
-              //command[0] = &words[cmdStart];
-              //printf("\nprint command\n");
-    	      //char *args[commandWords+1];
+          
               for (int i = 0; i < commandWords; i++)
               {
-              	//printf("%s ", words[i]);
               	command[i] = words[i];
     	      }
     	      command[commandWords] = 0;
-              //printf("\n");
-    
               
+              // run after parsed
               if (fork() ==0)
-              {
-	      	//printf("\nchild\n");      
+              {      
               	close (p[0]);
               	dup2 (p[1], 1);
               	execv(command[0],command);
                 exit(1);
     	      }
-    	      else 
-              {
-              //close (p[1]);
-              //dup2 (p[0], 0);
-              	wait(&status);
-                //close(p[0]);
-                //close(p[1]);
-              }
               cmdStart = word + 1;
          }
      }
-     //printCmd(&words[cmdStart], word - cmdStart);
-     //printf("\ncheck\n");
-     
+     // parse and run final command in pipe
      char *args[word - cmdStart + 1];
      int i = 0;
      for (; i <= word - cmdStart; i++)
      {
          args[i] = words[cmdStart + i];
      }
-     //printf("\nargs: %s\n", args[1]);
-     //printf("\n");
-     args[2] = 0;
+     args[word - cmdStart + 1] = 0;
      if(fork() == 0){
         close(p[1]);
         dup2 (p[0], 0);
-        //printf("\n");
         execv(args[0], args);
         exit(1);
      }
      else{
-       printf("\n\n");
-       //wait(&status);
+       wait(&status);
      }
 }
 
+//Standard trim function: http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
 
 char *trimwhitespace(char *str){
   
@@ -131,6 +86,9 @@ char *trimwhitespace(char *str){
   return str;
 }
 
+// Search and parse correct path variable to string.
+// needs work, trying to find a way to throw a flag for a bad path,
+// while simultaneously keeping any strings that are options, eg. '-l'
 char *pathCheck(char *string, int length){
 	char *temp = malloc(sizeof(char));	
 	int tempLength = 0;		
@@ -182,6 +140,9 @@ void cd(char *arg[]){
 		currentDirectory = arg[1];
 	}
 }
+
+// overhaul broke this function and causes segfaults if 'path' is invoked with no
+// arguments. working on fix.
 void path(char *arg[]){
 	
 	//If command includes + or -, do appropriate actions, else display current path
@@ -282,8 +243,8 @@ void prompt(){
 	read(0,buf,CHAR_MAX);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
-	//printf("\nbuf: %s\n", buf);
-	//parse arguments
+	
+        //parse arguments
 	int numArgs = 1;	
 		
 	for(int i = 0; i < length; i++){
@@ -294,9 +255,7 @@ void prompt(){
 			}
 	}
 	arg[0] = trimmed;		
-	//for(int i = 0; i < 5; i++){
-	//	printf("\narg: %s\n", arg[i]);
-	//}	
+	
 	//Run internal command
 				
 	for(int i = 0; i < 4; i++){  									
@@ -312,7 +271,8 @@ void prompt(){
 		if(pathDir[0] == NULL){
 			printf("\nNo path specified, cannot run command\n");
 		}		
-		int numPipe = 0;
+		// check for '|'
+                int numPipe = 0;
 		for(int i = 0; i < numArgs; i++){
 			if(arg[i][0] == '|'){
 				numPipe++;
@@ -326,28 +286,27 @@ void prompt(){
 				parsedArgs[i] = arg[i];
 			}			
 			else{				
-				parsedArgs[i] = pathCheck(arg[i], length);							
-				//printf("\nparsed: %s\n",parsedArgs[0]);								
+				parsedArgs[i] = pathCheck(arg[i], length); 															
 			}				
-			if(parsedArgs[i] == NULL){
+			// working on fix to make this work. As of right now does nothing,
+                        // see note above pathCheck function.
+                        if(parsedArgs[i] == NULL){
 				printf("\nError: One or more commands or path directories are invalid\n");
 				break;
 			}				
-		}		
-		/*for(int i = 0; i < numArgs; i++){
-			printf("\nparsed: %s\n", parsedArgs[i]);
-		}*/	
+		}			
 		if(numPipe != 0){	
-			parseCommands(parsedArgs, numArgs);		
+			external_pipeline(parsedArgs, numArgs);		
 		}	
 		else{
 			external_command(parsedArgs[0], parsedArgs);
 		}	
-	         
+		for(int i = 0; i < numArgs; i++){
+			parsedArgs[i] = NULL;	
+        		arg[i] = NULL;
+		}		         
         }	
-	for(int i = 0; i < numArgs; i++){
-		arg[i] = NULL;
-	}		
+	
         FOUND = false;
 }				
 		
