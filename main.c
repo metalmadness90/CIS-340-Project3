@@ -7,14 +7,13 @@
 #include <wait.h>
 #include <fcntl.h>
 
+
 #include "main.h"
 
-//external commands if command is a pipeline. Sometimes enter 
-//needs to be pressed after execution for prompt symbol
-//to reapear. Not sure why but probably something stupid.
+//external commands if command is a pipeline. 
 void external_pipeline(char *words[], int numWords)
 {
-     int status = 0;
+     int status;	
      int count = 0;
      int cmdStart = 0;
      int word = 0;
@@ -46,7 +45,6 @@ void external_pipeline(char *words[], int numWords)
                       dup2(p2[1], 1);
                       close(p[0]);
        		      close(p[1]);
-	              printf("\n");
                       execv(command[0],command);
 		      printf("\nOne or more commands or path directories are invalid\n");		
 		      exit(1);
@@ -54,7 +52,7 @@ void external_pipeline(char *words[], int numWords)
                   else{
                       close(p[0]);
                       close(p[1]);
-                  }	    	        
+		  }	    	        
 	      }
               else{
 		    pipe(p);
@@ -64,12 +62,11 @@ void external_pipeline(char *words[], int numWords)
                     if(child == 0){
                         close (p[0]);
               	        dup2 (p[1], 1);
-                        printf("\n");
                         execv(command[0],command);
 		        printf("\nOne or more commands or path directories are invalid\n");		
 		        exit(1);
                     }    
-              }
+	      }
 	      cmdStart = word + 1;
          }
      }
@@ -93,8 +90,9 @@ void external_pipeline(char *words[], int numWords)
 	    exit(1);
         }
         else{
-	   wait(&status);
-       }
+       	   sleep(1);
+	   wait(&status);	
+	}
     }
     else{
         //if there are only 2
@@ -108,9 +106,9 @@ void external_pipeline(char *words[], int numWords)
 	    exit(1);
         }
         else{
-	    wait(&status);
-                     
-        }
+            sleep(1);         
+	    wait(&status);	        
+	}
     }
 }
 
@@ -170,12 +168,11 @@ char *pathCheck(char *string, int length){
 }
 
 void external_command(char *command, char *args[], int numArgs){
-		
-
-        int status = 0;
+	
 	pid_t child;
 	child = fork();
-			
+	int status;
+		
 	if(child == 0){							
 		if(REDIR){                	
 			for(int i = 0; i < numArgs; i++){
@@ -185,7 +182,7 @@ void external_command(char *command, char *args[], int numArgs){
                         	        out = open(args[i+1], O_RDWR|O_CREAT|O_APPEND, 0600); 
 					if(out < 0){
 						printf("\nFile not found\n");
-						return;
+						exit(1);
 					}				        
 					re_out =  dup(fileno(stdout));       
 		        	        dup2(re_out, fileno(stdout));
@@ -198,23 +195,25 @@ void external_command(char *command, char *args[], int numArgs){
                                         in = open(args[i+1], O_RDONLY|O_APPEND); 
 					if(in < 0){
 						printf("\nFile not found\n");
-						return;
+						exit(1);
 					}						        
 					re_in =  dup(fileno(stdin));       
 		        	        dup2(re_in, fileno(stdin)); 
 					args[i] = NULL;					
-	                                break;
+					args[i+1] = NULL;	                                
+					break;
                        		}    
 			}		
 		}				
-		//printf("\n");	
+		printf("\n");	
 		execv(command, args); 		
 		printf("\nInvalid command or path directory\n");
                 exit(1);
 								
 	}
-	else{
-		wait(&status);	 
+	else{ 
+		sleep(1);
+		wait(&status);	
 	}	
 }
 //Change directory
@@ -253,8 +252,7 @@ void path(char *arg[]){
 	//otherwise replace with NULL is fine.)		
 		if(strcmp(arg[1], internal[4]) == 0){
 			
-                	for(int i = 0; i < numPathArgs; i++){
-				printf("\nyes!\n");				
+                	for(int i = 0; i < numPathArgs; i++){				
 				if(arg[2] == NULL){
 					printf("\nNo path entered for removal\n");
 					return;
@@ -319,7 +317,8 @@ void prompt(){
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
 	char *arg[50]; 	
 	arg[1] = NULL;
-	//write(0, PROMPT, strlen(PROMPT));
+	
+	write(1, PROMPT, strlen(PROMPT));
 	
 	//Display current directory if different than starting directory
 	if(currentDirectory != NULL){
@@ -331,7 +330,6 @@ void prompt(){
 	for(int i = 0; i < length; i++){
 		buf[i] = ' ';
 	}	
-	//fgets(buf, 256,stdin);
 	read(0,buf,CHAR_MAX);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
@@ -369,16 +367,11 @@ void prompt(){
 				numPipe++;
 			}
 		}
-			//for(int i = 0; i < numArgs+1; i++){
 		for(int i = 0; i < numArgs; i++){
 			arg[i] = trimwhitespace(arg[i]);
 			length = strlen(arg[i]);								 	
-			if(arg[i][0] == '|'){				
-				parsedArgs[i] = arg[i];
-			}			
-			else{				
-				parsedArgs[i] = pathCheck(arg[i], length); 					                		
-			}							
+			
+			parsedArgs[i] = pathCheck(arg[i], length); 					                		
 		}			
 		if(numPipe != 0){	
 			external_pipeline(parsedArgs, numArgs);		
@@ -400,8 +393,7 @@ void prompt(){
 		
 int main(){
 
-	do{
-		write(1, PROMPT, strlen(PROMPT));	
+	do{				
 		prompt();
 	}while(!QUIT);
 

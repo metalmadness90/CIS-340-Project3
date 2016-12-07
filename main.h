@@ -4,7 +4,7 @@
 #define bool char
 #define false 0
 #define true 1
-#define PROMPT "shell$:"
+#define PROMPT "\nshell$:"
 
 
 //All internal commands
