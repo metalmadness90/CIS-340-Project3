@@ -135,15 +135,24 @@ char *trimwhitespace(char *str){
 
   return str;
 }
-
+		
 // Search and parse correct path variable to string.
 // needs work, trying to find a way to throw a flag for a bad path,
 // while simultaneously keeping any strings that are options, eg. '-l'
 char *pathCheck(char *string, int length){
 	char *temp = malloc(sizeof(char));	
 	int tempLength = 0;		
-      
-        for(int i = 0; i < numPathArgs; i++){					
+        
+	// Check for redirection command
+        if(string[0] == '>'){
+                OUT = true;
+                return string;
+        }
+        if(string[0] == '<'){
+                IN = true;
+                return string; 
+        }
+	for(int i = 0; i < numPathArgs; i++){					
 		strcpy(temp,pathDir[i]);
 		tempLength = strlen(temp);					
 		temp[tempLength] = '/';
@@ -164,12 +173,37 @@ char *pathCheck(char *string, int length){
         return string;
 }
 
-void external_command(char *command, char *args[]){
-	int status = 0;
+void external_command(char *command, char *args[], int numArgs){
+		
+
+        int status = 0;
 	pid_t child;
 	child = fork();
 			
 	if(child == 0){							
+		if(OUT || IN){
+			int out, re_out, in, re_in;                	
+			
+			for(int i = 0; i < numArgs; i++){
+                		if(args[i][0] == '>'){
+                        		close(1);
+                        	        out = open(args[i+1], O_RDWR|O_CREAT|O_APPEND, 0600); 
+				        re_out =  dup(fileno(stdout));       
+		        	        dup2(re_out, fileno(stdout));
+                        	        args[i] = NULL;
+					break;                        
+				}
+                        	if(args[i][0] == '<'){
+                        		close(0);
+                                        in = open(args[i+1], O_RDONLY, 0644); 
+				        re_in =  dup(fileno(stdin));       
+		        	        dup2(re_in, fileno(stdin)); 
+					args[i+1] = NULL;
+                                        read(0, args[i], sizeof(args[i]));                        
+				        break;
+                       		}    
+			}		
+		}		
 		printf("\n");	
 		execv(command, args); 		
 		printf("\nInvalid command or path directory\n");
@@ -178,7 +212,13 @@ void external_command(char *command, char *args[]){
 	}
 	else{
 		wait(&status);	 
-	}	
+		/*close(out);
+                close(in);
+                close(re_out);
+                close(re_in); 
+		dup2(1,fileno(stdout));       
+       		dup2(0,fileno(stdin));*/
+       }	
 }
 //Change directory
 void cd(char *arg[]){
@@ -340,7 +380,7 @@ void prompt(){
 				parsedArgs[i] = arg[i];
 			}			
 			else{				
-				parsedArgs[i] = pathCheck(arg[i], length); 															
+				parsedArgs[i] = pathCheck(arg[i], length); 					                		
 			}				
 			// working on fix to make this work. As of right now does nothing,
                         // see note above pathCheck function.
@@ -353,7 +393,7 @@ void prompt(){
 			external_pipeline(parsedArgs, numArgs);		
 		}	
 		else{
-			external_command(parsedArgs[0], parsedArgs);
+			external_command(parsedArgs[0], parsedArgs, numArgs);
 		}	
 		for(int i = 0; i < numArgs; i++){
 			parsedArgs[i] = NULL;	
@@ -364,6 +404,8 @@ void prompt(){
         		arg[i] = NULL;
 	}        
 	FOUND = false;
+	OUT = false;
+        IN = false;
 }				
 		
 int main(){
