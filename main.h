@@ -4,13 +4,12 @@
 #define bool char
 #define false 0
 #define true 1
-#define PROMPT "\nshell$:"
+#define PROMPT "shell$:"
 
 
 //All internal commands
 char *internal[7] = {"quit","cd","path","+","-","<",">"};
-bool OUT;
-bool IN;
+bool REDIR;
 bool QUIT;
 bool FOUND = false;
 bool CHECK;

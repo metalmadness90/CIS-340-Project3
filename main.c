@@ -144,12 +144,8 @@ char *pathCheck(char *string, int length){
 	int tempLength = 0;		
         
 	// Check for redirection command
-        if(string[0] == '>'){
-                OUT = true;
-                return string;
-        }
-        if(string[0] == '<'){
-                IN = true;
+        if(string[0] == '<' || string[0] == '>'){
+                REDIR = true;
                 return string; 
         }
 	for(int i = 0; i < numPathArgs; i++){					
@@ -181,44 +177,45 @@ void external_command(char *command, char *args[], int numArgs){
 	child = fork();
 			
 	if(child == 0){							
-		if(OUT || IN){
-			int out, re_out, in, re_in;                	
-			
+		if(REDIR){                	
 			for(int i = 0; i < numArgs; i++){
                 		if(args[i][0] == '>'){
-                        		close(1);
+					int out, re_out;                        		
+					close(1);
                         	        out = open(args[i+1], O_RDWR|O_CREAT|O_APPEND, 0600); 
-				        re_out =  dup(fileno(stdout));       
+					if(out < 0){
+						printf("\nFile not found\n");
+						return;
+					}				        
+					re_out =  dup(fileno(stdout));       
 		        	        dup2(re_out, fileno(stdout));
                         	        args[i] = NULL;
 					break;                        
 				}
                         	if(args[i][0] == '<'){
-                        		close(0);
-                                        in = open(args[i+1], O_RDONLY, 0644); 
-				        re_in =  dup(fileno(stdin));       
+					int in, re_in;                        		
+					close(0);
+                                        in = open(args[i+1], O_RDONLY|O_APPEND); 
+					if(in < 0){
+						printf("\nFile not found\n");
+						return;
+					}						        
+					re_in =  dup(fileno(stdin));       
 		        	        dup2(re_in, fileno(stdin)); 
-					args[i+1] = NULL;
-                                        read(0, args[i], sizeof(args[i]));                        
-				        break;
+					args[i] = NULL;					
+	                                break;
                        		}    
 			}		
-		}		
-		printf("\n");	
+		}				
+		//printf("\n");	
 		execv(command, args); 		
 		printf("\nInvalid command or path directory\n");
                 exit(1);
-									
+								
 	}
 	else{
 		wait(&status);	 
-		/*close(out);
-                close(in);
-                close(re_out);
-                close(re_in); 
-		dup2(1,fileno(stdout));       
-       		dup2(0,fileno(stdin));*/
-       }	
+	}	
 }
 //Change directory
 void cd(char *arg[]){
@@ -381,13 +378,7 @@ void prompt(){
 			}			
 			else{				
 				parsedArgs[i] = pathCheck(arg[i], length); 					                		
-			}				
-			// working on fix to make this work. As of right now does nothing,
-                        // see note above pathCheck function.
-                        if(parsedArgs[i] == NULL){
-				printf("\nError: One or more commands or path directories are invalid\n");
-				break;
-			}				
+			}							
 		}			
 		if(numPipe != 0){	
 			external_pipeline(parsedArgs, numArgs);		
@@ -404,8 +395,7 @@ void prompt(){
         		arg[i] = NULL;
 	}        
 	FOUND = false;
-	OUT = false;
-        IN = false;
+	REDIR = false;
 }				
 		
 int main(){
