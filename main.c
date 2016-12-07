@@ -14,35 +14,63 @@
 //to reapear. Not sure why but probably something stupid.
 void external_pipeline(char *words[], int numWords)
 {
-     int status = 0;
+     
+     int count = 0;
      int cmdStart = 0;
      int word = 0;
      int p[2];
-     pipe(p);
-     //printf("\n");
+     int p2[2];
+     //pipe(p);
+     //pipe(p2);
      for (; word < numWords; word++)
      {
          // if word is "|"
-         if (words[word][0] == '|' || words[word][0] == 0)
+         if (words[word][0] == '|' )
          {
-              int commandWords = word - cmdStart;
+              //words[word][0] = 0;
+	      int commandWords = word - cmdStart;
               char *command[commandWords+1];
-          
-              for (int i = 0; i < commandWords; i++)
+              int i = 0;
+              for (; cmdStart < word; cmdStart++)
               {
-              	command[i] = words[i];
-    	      }
-    	      command[commandWords] = 0;
-              
+              	command[i] = words[cmdStart];
+    	        i++;
+	      }
+    	      count++;
+              command[commandWords] = 0;
               // run after parsed
-              if (fork() ==0)
-              {      
-              	close (p[0]);
-              	dup2 (p[1], 1);
-              	execv(command[0],command);
-                exit(1);
-    	      }
-              
+           
+              if(count == 2){
+                  pipe(p2);
+                  pid_t child2;
+	          child2 = fork();
+                  if(child2 == 0){
+	              dup2(p[0],0);
+                      dup2(p2[1], 1);
+                      close(p[0]);
+       		      close(p[1]);
+	              execv(command[0],command);
+		      printf("\nfail1\n");		
+		      exit(1);
+		  }
+                  else{
+                      close(p[0]);
+                      close(p[1]);
+                  }	    	        
+	      }
+              else{
+		    pipe(p);
+                    pid_t child;
+	            child = fork();
+                    
+                    if(child == 0){
+                        close (p[0]);
+              	        dup2 (p[1], 1);
+                        execv(command[0],command);
+		        printf("\nfail1\n");		
+		        exit(1);
+                    }    
+              }
 	      cmdStart = word + 1;
          }
      }
@@ -54,17 +82,29 @@ void external_pipeline(char *words[], int numWords)
          args[i] = words[cmdStart + i];
      }
      args[word - cmdStart + 1] = 0;
-     if(fork() == 0){
-        close(p[1]);
-        dup2 (p[0], 0);
-	printf("\n");        
-	execv(args[0], args);
-        exit(1);
-     }
-     else{
-       wait(&status);
-     }
-     //printf("\n\n");
+     
+    if(count == 2){
+    	if(fork() == 0){
+    	    dup2(p2[0], 0);  
+    	    close(p2[1]);
+    	    close(p2[0]);
+    	    printf("\n");        
+            execv(args[0], args);
+	    printf("\nfail2\n");        
+	    exit(1);
+        }
+    }
+    else{
+        if(fork() == 0){
+    	    dup2(p[0], 0);  
+    	    close(p[1]);
+    	    close(p[0]);
+    	    printf("\n");        
+            execv(args[0], args);
+	    printf("\nfail2\n");        
+	    exit(1);
+        }
+    }
 }
 
 //Standard trim function: http://stackoverflow.com/questions/122616/how-do-i-trim-leading-trailing-whitespace-in-a-standard-way
@@ -245,11 +285,11 @@ void prompt(){
 	for(int i = 0; i < length; i++){
 		buf[i] = ' ';
 	}	
-	
+	//fgets(buf, 256,stdin);
 	read(0,buf,CHAR_MAX);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
-	
+	//printf("\nbuf: %s\n", buf);
         //parse arguments
 	int numArgs = 1;	
 		
