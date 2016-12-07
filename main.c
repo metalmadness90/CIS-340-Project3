@@ -14,20 +14,17 @@
 //to reapear. Not sure why but probably something stupid.
 void external_pipeline(char *words[], int numWords)
 {
-     
+     int status = 0;
      int count = 0;
      int cmdStart = 0;
      int word = 0;
      int p[2];
      int p2[2];
-     //pipe(p);
-     //pipe(p2);
      for (; word < numWords; word++)
      {
          // if word is "|"
          if (words[word][0] == '|' )
          {
-              //words[word][0] = 0;
 	      int commandWords = word - cmdStart;
               char *command[commandWords+1];
               int i = 0;
@@ -39,7 +36,7 @@ void external_pipeline(char *words[], int numWords)
     	      count++;
               command[commandWords] = 0;
               // run after parsed
-           
+              
               if(count == 2){
                   pipe(p2);
                   pid_t child2;
@@ -49,8 +46,9 @@ void external_pipeline(char *words[], int numWords)
                       dup2(p2[1], 1);
                       close(p[0]);
        		      close(p[1]);
-	              execv(command[0],command);
-		      printf("\nfail1\n");		
+	              printf("\n");
+                      execv(command[0],command);
+		      printf("\nOne or more commands or path directories are invalid\n");		
 		      exit(1);
 		  }
                   else{
@@ -66,15 +64,16 @@ void external_pipeline(char *words[], int numWords)
                     if(child == 0){
                         close (p[0]);
               	        dup2 (p[1], 1);
+                        printf("\n");
                         execv(command[0],command);
-		        printf("\nfail1\n");		
+		        printf("\nOne or more commands or path directories are invalid\n");		
 		        exit(1);
                     }    
               }
 	      cmdStart = word + 1;
          }
      }
-     // parse and run final command in pipe
+     // parse and run final command in proc
      char *args[word - cmdStart + 1];
      int i = 0;
      for (; i <= word - cmdStart; i++)
@@ -82,7 +81,7 @@ void external_pipeline(char *words[], int numWords)
          args[i] = words[cmdStart + i];
      }
      args[word - cmdStart + 1] = 0;
-     
+    //if 3 pipe arguments execute here 
     if(count == 2){
     	if(fork() == 0){
     	    dup2(p2[0], 0);  
@@ -90,19 +89,27 @@ void external_pipeline(char *words[], int numWords)
     	    close(p2[0]);
     	    printf("\n");        
             execv(args[0], args);
-	    printf("\nfail2\n");        
+	    printf("\nOne or more commands or path directories are invalid\n");        
 	    exit(1);
         }
+        else{
+	   wait(&status);
+       }
     }
     else{
+        //if there are only 2
         if(fork() == 0){
     	    dup2(p[0], 0);  
     	    close(p[1]);
     	    close(p[0]);
     	    printf("\n");        
             execv(args[0], args);
-	    printf("\nfail2\n");        
+	    printf("\nOne or more commands or path directories are invalid\n");        
 	    exit(1);
+        }
+        else{
+	    wait(&status);
+                     
         }
     }
 }
@@ -135,7 +142,8 @@ char *trimwhitespace(char *str){
 char *pathCheck(char *string, int length){
 	char *temp = malloc(sizeof(char));	
 	int tempLength = 0;		
-	for(int i = 0; i < numPathArgs; i++){					
+      
+        for(int i = 0; i < numPathArgs; i++){					
 		strcpy(temp,pathDir[i]);
 		tempLength = strlen(temp);					
 		temp[tempLength] = '/';
@@ -153,7 +161,7 @@ char *pathCheck(char *string, int length){
 		}
 		close(check);	
 	}        	
-	return string;
+        return string;
 }
 
 void external_command(char *command, char *args[]){
@@ -164,7 +172,8 @@ void external_command(char *command, char *args[]){
 	if(child == 0){							
 		printf("\n");	
 		execv(command, args); 		
-		exit(1);
+		printf("\nInvalid command or path directory\n");
+                exit(1);
 									
 	}
 	else{
@@ -273,7 +282,7 @@ void prompt(){
 	char *internalComp = malloc(sizeof(CHAR_MAX));	
 	char *arg[50]; 	
 	arg[1] = NULL;
-	write(1, PROMPT, strlen(PROMPT));
+	//write(0, PROMPT, strlen(PROMPT));
 	
 	//Display current directory if different than starting directory
 	if(currentDirectory != NULL){
@@ -289,7 +298,6 @@ void prompt(){
 	read(0,buf,CHAR_MAX);
 	char *trimmed = trimwhitespace(buf);
 	length = strlen(trimmed);
-	//printf("\nbuf: %s\n", buf);
         //parse arguments
 	int numArgs = 1;	
 		
@@ -361,6 +369,7 @@ void prompt(){
 int main(){
 
 	do{
+		write(1, PROMPT, strlen(PROMPT));	
 		prompt();
 	}while(!QUIT);
 

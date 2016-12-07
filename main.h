@@ -8,7 +8,7 @@
 
 
 //All internal commands
-char *internal[5] = {"quit","cd","path","+","-"};
+char *internal[7] = {"quit","cd","path","+","-","<",">"};
 bool QUIT;
 bool FOUND = false;
 bool CHECK;
